@@ -9,11 +9,11 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 
-	middlewares "govision/internal/middlewares"
-	routes "govision/internal/routes"
-	rabbitmqConn "govision/services/rabbitmq"
+	middlewares "govision/api/internal/middlewares"
+	routes "govision/api/internal/routes"
+	rabbitmqConn "govision/api/services/rabbitmq"
 
-	file "govision/internal/modules/file"
+	file "govision/api/internal/modules/file"
 )
 
 func main() {

@@ -1,11 +1,17 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	sabbitmq "govision_worker/internal/services/rabbitmq"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
+
+	"govision/worker/internal/services/rabbitmq"
+	"govision/worker/internal/services/roboflow"
+	"govision/worker/internal/worker"
 
 	"github.com/joho/godotenv"
 )
@@ -16,13 +22,21 @@ func main() {
 	_ = godotenv.Load()
 	rabbitConnString := os.Getenv("RABBITMQ_URL")
 	rabbitQueueString := os.Getenv("RABBITMQ_QUEUE")
+	roboflowAPIKey := os.Getenv("ROBOFLOW_API_KEY")
+	roboflowModel := os.Getenv("ROBOFLOW_MODEL")
 
 	if rabbitConnString == "" || rabbitQueueString == "" {
-		log.Printf("[ERROR] - Environment variables no found.")
-		panic(errors.New("Environment variables not found."))
+		log.Printf("[ERROR] - Environment variables not found.")
+		panic(errors.New("environment variables not found"))
 	}
 
-	rabbitMQConnection, err := sabbitmq.NewRabbittMQConnection(rabbitConnString)
+	if roboflowAPIKey == "" || roboflowModel == "" {
+		log.Printf("[ERROR] - Roboflow environment variables not found.")
+		panic(errors.New("ROBOFLOW_API_KEY and ROBOFLOW_MODEL must be set"))
+	}
+
+	// RabbitMQ connection
+	rabbitMQConnection, err := rabbitmq.NewRabbittMQConnection(rabbitConnString)
 	if err != nil {
 		log.Printf("[ERROR] - RabbitMQ connection error: %v", err)
 		panic(err)
@@ -36,24 +50,26 @@ func main() {
 	}
 	defer ch.Close()
 
-	msgs, err := ch.Consume(
-		rabbitQueueString,
-		"",
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
+	// Consumer
+	consumer := rabbitmq.NewRabbitMQConsumer(ch, rabbitQueueString)
 
-	forever := make(chan bool)
-	go func() {
-		for d := range msgs {
-			fmt.Printf("Received message: %s\n", d.Body)
-		}
-	}()
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
+	msgs, err := consumer.Consume(ctx)
+	if err != nil {
+		log.Printf("[ERROR] - Failed to start consuming: %v", err)
+		panic(err)
+	}
+
+	// Roboflow client
+	rfClient := roboflow.NewClient(roboflowAPIKey, roboflowModel)
+
+	// Worker
+	w := worker.New(rfClient)
 
 	fmt.Println("Successfully connected to RabbitMQ instance")
 	fmt.Println("[*] - Waiting for messages")
-	<-forever
+
+	w.ProcessMessages(ctx, msgs)
 }

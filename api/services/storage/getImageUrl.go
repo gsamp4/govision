@@ -3,7 +3,7 @@ package storage
 import (
 	"bytes"
 	"encoding/json"
-	utils "govision/pkg/utils"
+	utils "govision/api/pkg/utils"
 )
 
 type StorageService[T any] struct {

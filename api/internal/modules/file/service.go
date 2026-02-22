@@ -11,8 +11,8 @@ import (
 	"os"
 	"time"
 
-	"govision/services/rabbitmq"
-	storage "govision/services/storage"
+	"govision/api/services/rabbitmq"
+	storage "govision/api/services/storage"
 
 	"github.com/oklog/ulid/v2"
 )

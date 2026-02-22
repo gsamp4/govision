@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"govision/services/rabbitmq"
+	"govision/api/services/rabbitmq"
 
 	"github.com/labstack/echo/v4"
 )

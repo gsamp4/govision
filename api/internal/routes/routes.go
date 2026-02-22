@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"govision/internal/modules/file"
+	"govision/api/internal/modules/file"
 
 	"github.com/labstack/echo/v4"
 )
