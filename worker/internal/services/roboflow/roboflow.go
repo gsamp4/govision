@@ -16,6 +16,16 @@ import (
 
 const defaultTimeout = 30 * time.Second
 
+// APIError represents a non-retryable HTTP error from the Roboflow API.
+type APIError struct {
+	StatusCode int
+	Body       string
+}
+
+func (e *APIError) Error() string {
+	return fmt.Sprintf("roboflow returned status %d: %s", e.StatusCode, e.Body)
+}
+
 type Client struct {
 	apiKey     string
 	model      string
@@ -120,7 +130,7 @@ func (c *Client) infer(ctx context.Context, imageBytes []byte) (*domain.Roboflow
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("roboflow returned status %d: %s", resp.StatusCode, string(respBytes))
+		return nil, &APIError{StatusCode: resp.StatusCode, Body: string(respBytes)}
 	}
 
 	var roboflowResp domain.RoboflowResponse

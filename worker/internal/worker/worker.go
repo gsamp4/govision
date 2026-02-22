@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 
 	"govision/worker/internal/domain"
@@ -55,8 +56,14 @@ func (w *Worker) handleMessage(ctx context.Context, msg amqp.Delivery) {
 
 	result, err := w.roboflow.Detect(ctx, job.ImageURL)
 	if err != nil {
+		var apiErr *roboflow.APIError
+		if errors.As(err, &apiErr) {
+			log.Printf("[WORKER] - Job %s failed with non-retryable error (HTTP %d): %s", job.JobID, apiErr.StatusCode, apiErr.Body)
+			_ = msg.Nack(false, false)
+			return
+		}
 		log.Printf("[WORKER] - Job %s failed: %v", job.JobID, err)
-		_ = msg.Nack(false, true)
+		_ = msg.Nack(false, false)
 		return
 	}
 
