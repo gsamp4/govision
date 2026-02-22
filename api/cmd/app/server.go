@@ -22,7 +22,7 @@ func main() {
 
 	port := os.Getenv("API_PORT")
 	if port == "" {
-		port = "8080"
+		panic("API_PORT not found.")
 	}
 
 	publisher := rabbitmqConn.PublisherFactory()
